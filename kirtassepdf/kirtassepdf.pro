@@ -2,8 +2,8 @@ TEMPLATE = lib
 CONFIG += plugin release
 
 INCLUDEPATH += ../qbooks
-INCLUDEPATH  += /usr/include/poppler/qt4
-LIBS         += -L/usr/lib -lpoppler-qt4
+INCLUDEPATH  += /usr/include/poppler/qt5
+LIBS         += -L/usr/lib -lpoppler-qt5
 
 TARGET = $$qtLibraryTarget(kirtassepdf)
 DESTDIR = ../usr/share/elkirtasse/plugins
