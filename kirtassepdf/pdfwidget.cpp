@@ -37,7 +37,9 @@
 ****************************************************************************/
 
 #include <QtGui>
-#include <poppler-qt4.h>
+#include <QMenu>           // <-- TAMBAHKAN INI
+#include <QAction>         // <-- Kalau belum ada, tambahkan juga
+#include <poppler-qt5.h>
 #include "pdfwidget.h"
 Label::Label(QWidget *parent)
     : QLabel(parent)
@@ -81,12 +83,12 @@ void PdfWidget::customContextMenu()
     menu.addActions(mListAction);
         menu.addSeparator();
         a=menu.addAction(QIcon::fromTheme("zoom-fit-page", QIcon(":/images/image/zoom-fit-width.png"))
-                          ,trUtf8("ناسب عرض الصفحة"));
+                          ,tr("ناسب عرض الصفحة"));
         connect(a,SIGNAL(triggered(bool)),this,SLOT(fitInwidthPdf(bool)));
         a->setCheckable(true);
         a->setChecked(m_fitInwidth);
-        a=menu.addAction(QIcon::fromTheme("zoom-in"),trUtf8("تكبير"),this,SLOT(zoomIn()));
-        a=menu.addAction(QIcon::fromTheme("zoom-out"),trUtf8("تصغير"),this,SLOT(zoomOut()));
+        a=menu.addAction(QIcon::fromTheme("zoom-in"),tr("تكبير"),this,SLOT(zoomIn()));
+        a=menu.addAction(QIcon::fromTheme("zoom-out"),tr("تصغير"),this,SLOT(zoomOut()));
 
         menu.exec(QCursor::pos());
 
@@ -211,103 +213,53 @@ void PdfWidget::showPage(int page)
 
 QRectF PdfWidget::searchBackwards(const QString &text)
 {
-    QRectF oldLocation = searchLocation;
-
     int page = currentPage;
-    if (oldLocation.isNull())
-        page -= 1;
-
-    while (page > -1) {
-
-        QList<QRectF> locations;
-        searchLocation = QRectF();
-
-        while (doc->page(page)->search(text, searchLocation,
-            Poppler::Page::NextResult, Poppler::Page::CaseInsensitive)) {
-
-            if (searchLocation != oldLocation)
-                locations.append(searchLocation);
-            else
-                break;
-        }
-
-        int index = locations.indexOf(oldLocation);
-        if (index == -1 && !locations.isEmpty()) {
-            searchLocation = locations.last();
-            showPage(page + 1);
-            return searchLocation;
-        } else if (index > 0) {
-            searchLocation = locations[index - 1];
-            showPage(page + 1);
-            return searchLocation;
-        }
-
-        oldLocation = QRectF();
-        page -= 1;
-    }
-
-    if (currentPage == doc->numPages() - 1)
-        return QRectF();
-
-    oldLocation = QRectF();
-    page = doc->numPages() - 1;
-
-    while (page > currentPage) {
-
-        QList<QRectF> locations;
-        searchLocation = QRectF();
-
-        while (doc->page(page)->search(text, searchLocation,
-            Poppler::Page::NextResult, Poppler::Page::CaseInsensitive)) {
-
-            locations.append(searchLocation);
-        }
-
-        if (!locations.isEmpty()) {
-            searchLocation = locations.last();
-            showPage(page + 1);
-            return searchLocation;
+    
+    while (page >= 0) {
+        Poppler::Page *pdfPage = doc->page(page);
+        if (pdfPage) {
+            // API baru: mengembalikan LIST semua hasil pencarian
+            QList<QRectF> results = pdfPage->search(text);
+            
+            if (!results.isEmpty()) {
+                // Ambil hasil TERAKHIR (karena kita cari mundur)
+                QRectF searchLocation = results.last();
+                showPage(page + 1);
+                setEnsureVisible(searchLocation);
+                delete pdfPage;  // Release memory!
+                return searchLocation;
+            }
+            delete pdfPage;  // Release kalau tidak ada hasil
         }
         page -= 1;
     }
-
+    
     return QRectF();
 }
 
 QRectF PdfWidget::searchForwards(const QString &text)
 {
     int page = currentPage;
+    
     while (page < doc->numPages()) {
-
-        if (doc->page(page)->search(text, searchLocation,
-            Poppler::Page::NextResult, Poppler::Page::CaseInsensitive)) {
-            if (!searchLocation.isNull()) {
+        Poppler::Page *pdfPage = doc->page(page);
+        if (pdfPage) {
+            // API baru: mengembalikan LIST semua hasil pencarian
+            QList<QRectF> results = pdfPage->search(text);
+            
+            if (!results.isEmpty()) {
+                // Ambil hasil pertama
+                QRectF searchLocation = results.first();
                 showPage(page + 1);
                 setEnsureVisible(searchLocation);
+                delete pdfPage;  // Release memory!
                 return searchLocation;
             }
-        }
-        page += 1;
-        searchLocation = QRectF();
-    }
-
-    page = 0;
-
-    while (page < currentPage) {
-
-        searchLocation = QRectF();
-
-        if (doc->page(page)->search(text, searchLocation,
-            Poppler::Page::NextResult, Poppler::Page::CaseInsensitive)) {
-            if (!searchLocation.isNull()) {
-                showPage(page + 1);
-                 setEnsureVisible(searchLocation);
-                return searchLocation;
-            }
+            delete pdfPage;  // Release kalau tidak ada hasil
         }
         page += 1;
     }
-
+    
     return QRectF();
 }
 
@@ -467,4 +419,4 @@ void PdfWidget::fitInwidthPdf(bool fit)
       //  this->setScale(scalPdf);
     }
 }
-Q_EXPORT_PLUGIN2(kirtassepdf, PdfWidget);
+//Q_EXPORT_PLUGIN2(kirtassepdf, PdfWidget);
