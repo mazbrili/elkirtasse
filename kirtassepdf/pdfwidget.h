@@ -42,7 +42,8 @@
 #include <QLabel>
 #include <QRectF>
 #include <QTreeWidget>
-#include <poppler-qt4.h>
+#include <poppler-qt5.h>
+#include <QScrollBar>
 #include <QScrollArea>
 //class QRubberBand;
 class Label: public QLabel
@@ -68,7 +69,6 @@ private:
 class PdfWidget : public QScrollArea, PdfInterface
 {
     Q_OBJECT
-    Q_INTERFACES(PdfInterface)
 protected:
     void resizeEvent ( QResizeEvent *  ) {fitInwidthPdf(m_fitInwidth);}
 
